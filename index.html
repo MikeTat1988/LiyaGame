@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Животные</title>
 <style>
 :root {
@@ -15,7 +15,8 @@
   --accent: #388ef4;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; min-height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+html, body { margin: 0; min-height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; touch-action: manipulation; overscroll-behavior: none; }
+button, img, .card, .big-image, .modal, .modal-card { touch-action: manipulation; }
 body {
   background:
     radial-gradient(circle at 15% 10%, rgba(153, 102, 255, 0.28), transparent 28%),
@@ -145,6 +146,29 @@ body {
   display: grid;
   place-items: center;
   cursor: pointer;
+  position: relative;
+}
+
+.image-close-btn {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: 112px;
+  height: 112px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(230, 42, 42, 0.94);
+  color: #fff;
+  font-size: 68px;
+  font-weight: 900;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 14px 30px rgba(0,0,0,0.28);
+  z-index: 3;
+}
+.image-close-btn:active {
+  transform: translate(-50%, -50%) scale(0.97);
 }
 .big-image img {
   width: 90%;
@@ -152,6 +176,7 @@ body {
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
+  pointer-events: none;
 }
 .modal-name {
   margin-top: 10px;
@@ -196,6 +221,7 @@ body {
   .card { border-radius: 24px; min-height: 165px; padding: 12px 10px 14px; }
   .thumb { border-radius: 18px; }
   .thumb img { width: 80%; height: 80%; }
+  .image-close-btn { width: 96px; height: 96px; font-size: 58px; }
 }
 </style>
 </head>
@@ -207,7 +233,7 @@ body {
   </div>
 
   <div class="grid" id="grid"></div>
-  <div class="footer-note">При открытии произносится имя. Нажми на большую картинку ещё раз — включится звук животного.</div>
+  <div class="footer-note">При открытии произносится имя. Нажми на большую картинку ещё раз — включится звук. Красный крестик закрывает окно.</div>
 </div>
 
 <div class="modal" id="modal" aria-hidden="true">
@@ -216,9 +242,10 @@ body {
       <button class="close-btn" id="closeBtn" aria-label="Закрыть">×</button>
     </div>
     <div class="big-stage">
-      <button class="big-image" id="bigImageBtn" aria-label="Проиграть звук">
+      <div class="big-image" id="bigImageBtn" role="button" tabindex="0" aria-label="Проиграть звук">
         <img id="bigImage" alt="">
-      </button>
+        <button class="image-close-btn" id="imageCloseBtn" type="button" aria-label="Закрыть">×</button>
+      </div>
       <div class="modal-name" id="modalName"></div>
       <div class="hint" id="hint">Нажми на картинку ещё раз</div>
       <div class="actions">
@@ -239,6 +266,7 @@ const bigImageBtn = document.getElementById('bigImageBtn');
 const modalName = document.getElementById('modalName');
 const hint = document.getElementById('hint');
 const closeBtn = document.getElementById('closeBtn');
+const imageCloseBtn = document.getElementById('imageCloseBtn');
 const sayAgainBtn = document.getElementById('sayAgainBtn');
 const playSoundBtn = document.getElementById('playSoundBtn');
 const shuffleBtn = document.getElementById('shuffleBtn');
@@ -308,7 +336,7 @@ function openAnimal(animal) {
   modalName.textContent = animal.name;
   modal.classList.add('show');
   modal.setAttribute('aria-hidden', 'false');
-  updateHint('Нажми на картинку ещё раз');
+  updateHint('Нажми на картинку ещё раз. Красный крестик закрывает.');
   playSoundBtn.style.display = 'inline-block';
   speak(animal.name);
 }
@@ -336,11 +364,37 @@ function render() {
   }
 }
 
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (now - lastTouchEnd <= 350) {
+    e.preventDefault();
+  }
+  lastTouchEnd = now;
+}, { passive: false });
+
+['gesturestart', 'gesturechange', 'gestureend', 'dblclick'].forEach((eventName) => {
+  document.addEventListener(eventName, (e) => {
+    e.preventDefault();
+  }, { passive: false });
+});
+
 shuffleBtn.addEventListener('click', render);
 closeBtn.addEventListener('click', closeModal);
+imageCloseBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  closeModal();
+});
 sayAgainBtn.addEventListener('click', () => currentAnimal && speak(currentAnimal.name));
 playSoundBtn.addEventListener('click', () => currentAnimal && playAnimalSound(currentAnimal));
 bigImageBtn.addEventListener('click', () => currentAnimal && playAnimalSound(currentAnimal));
+bigImageBtn.addEventListener('keydown', (e) => {
+  if ((e.key === 'Enter' || e.key === ' ') && currentAnimal) {
+    e.preventDefault();
+    playAnimalSound(currentAnimal);
+  }
+});
 modal.addEventListener('click', (e) => {
   if (e.target === modal) closeModal();
 });
