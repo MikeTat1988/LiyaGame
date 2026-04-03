@@ -115,22 +115,8 @@ body {
   width: min(680px, 100%);
   background: rgba(255,255,255,0.96);
   border-radius: 34px;
-  padding: 18px 18px 22px;
+  padding: 24px 18px 22px;
   box-shadow: 0 25px 70px rgba(0,0,0,0.34);
-}
-.modal-top {
-  display: flex;
-  justify-content: flex-end;
-}
-.close-btn {
-  border: 0;
-  background: #f0eef7;
-  color: #6a5e88;
-  border-radius: 14px;
-  width: 40px;
-  height: 40px;
-  font-size: 22px;
-  font-weight: 700;
 }
 .big-stage {
   display: grid;
@@ -142,33 +128,35 @@ body {
   aspect-ratio: 1 / 1;
   border-radius: 28px;
   background: #f7f7f7;
-  overflow: hidden;
+  overflow: visible;
   display: grid;
   place-items: center;
   cursor: pointer;
   position: relative;
+  border: 5px solid #f5a3c8;
 }
 
 .image-close-btn {
   position: absolute;
-  inset: 50% auto auto 50%;
-  transform: translate(-50%, -50%);
-  width: 112px;
-  height: 112px;
+  left: 50%;
+  top: -38px;
+  transform: translateX(-50%);
+  width: 104px;
+  height: 104px;
   border: 0;
   border-radius: 999px;
   background: rgba(230, 42, 42, 0.94);
   color: #fff;
-  font-size: 68px;
+  font-size: 64px;
   font-weight: 900;
   line-height: 1;
   display: grid;
   place-items: center;
   box-shadow: 0 14px 30px rgba(0,0,0,0.28);
-  z-index: 3;
+  z-index: 4;
 }
 .image-close-btn:active {
-  transform: translate(-50%, -50%) scale(0.97);
+  transform: translateX(-50%) scale(0.97);
 }
 .big-image img {
   width: 90%;
@@ -179,40 +167,11 @@ body {
   pointer-events: none;
 }
 .modal-name {
-  margin-top: 10px;
+  margin-top: 18px;
   text-align: center;
   font-size: clamp(30px, 7vw, 46px);
   color: var(--accent);
   font-weight: 900;
-}
-.hint {
-  text-align: center;
-  margin-top: 8px;
-  color: #6a6881;
-  font-size: 15px;
-  min-height: 20px;
-}
-.actions {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-}
-.action-btn {
-  border: 0;
-  border-radius: 999px;
-  padding: 12px 16px;
-  background: #f0f5ff;
-  color: #2d6bd7;
-  font-weight: 800;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.07);
-}
-.footer-note {
-  margin-top: 16px;
-  text-align: center;
-  color: rgba(255,255,255,0.82);
-  font-size: 13px;
 }
 @media (max-width: 580px) {
   .header { align-items: stretch; }
@@ -221,7 +180,7 @@ body {
   .card { border-radius: 24px; min-height: 165px; padding: 12px 10px 14px; }
   .thumb { border-radius: 18px; }
   .thumb img { width: 80%; height: 80%; }
-  .image-close-btn { width: 96px; height: 96px; font-size: 58px; }
+  .image-close-btn { width: 90px; height: 90px; font-size: 54px; top: -30px; }
 }
 </style>
 </head>
@@ -233,25 +192,16 @@ body {
   </div>
 
   <div class="grid" id="grid"></div>
-  <div class="footer-note">При открытии произносится имя. Нажми на большую картинку ещё раз — включится звук. Красный крестик закрывает окно.</div>
 </div>
 
 <div class="modal" id="modal" aria-hidden="true">
   <div class="modal-card">
-    <div class="modal-top">
-      <button class="close-btn" id="closeBtn" aria-label="Закрыть">×</button>
-    </div>
     <div class="big-stage">
       <div class="big-image" id="bigImageBtn" role="button" tabindex="0" aria-label="Проиграть звук">
         <img id="bigImage" alt="">
         <button class="image-close-btn" id="imageCloseBtn" type="button" aria-label="Закрыть">×</button>
       </div>
       <div class="modal-name" id="modalName"></div>
-      <div class="hint" id="hint">Нажми на картинку ещё раз</div>
-      <div class="actions">
-        <button class="action-btn" id="sayAgainBtn">🔊 Имя ещё раз</button>
-        <button class="action-btn" id="playSoundBtn">🐾 Звук</button>
-      </div>
     </div>
   </div>
 </div>
@@ -264,11 +214,7 @@ const modal = document.getElementById('modal');
 const bigImage = document.getElementById('bigImage');
 const bigImageBtn = document.getElementById('bigImageBtn');
 const modalName = document.getElementById('modalName');
-const hint = document.getElementById('hint');
-const closeBtn = document.getElementById('closeBtn');
 const imageCloseBtn = document.getElementById('imageCloseBtn');
-const sayAgainBtn = document.getElementById('sayAgainBtn');
-const playSoundBtn = document.getElementById('playSoundBtn');
 const shuffleBtn = document.getElementById('shuffleBtn');
 
 let currentAnimal = null;
@@ -303,15 +249,11 @@ function speak(text) {
   } catch (e) {}
 }
 
-function updateHint(text) {
-  hint.textContent = text || '';
-}
 
 function playAnimalSound(animal) {
   if (!animal) return;
   stopAudio();
   if (!animal.sound) {
-    updateHint('Для этого животного пока оставил только озвучку имени');
     speak(animal.name);
     return;
   }
@@ -319,13 +261,11 @@ function playAnimalSound(animal) {
     audio = new Audio();
     audio.preload = 'none';
     audio.src = animal.sound;
-    audio.play()
-      .then(() => updateHint(''))
-      .catch(() => {
-        updateHint('Звук не запустился. Скорее всего, внешний сайт не дал проиграть файл');
-      });
+    audio.play().catch(() => {
+      speak(animal.name);
+    });
   } catch (e) {
-    updateHint('Звук не запустился');
+    speak(animal.name);
   }
 }
 
@@ -336,8 +276,6 @@ function openAnimal(animal) {
   modalName.textContent = animal.name;
   modal.classList.add('show');
   modal.setAttribute('aria-hidden', 'false');
-  updateHint('Нажми на картинку ещё раз. Красный крестик закрывает.');
-  playSoundBtn.style.display = 'inline-block';
   speak(animal.name);
 }
 
@@ -380,14 +318,11 @@ document.addEventListener('touchend', (e) => {
 });
 
 shuffleBtn.addEventListener('click', render);
-closeBtn.addEventListener('click', closeModal);
 imageCloseBtn.addEventListener('click', (e) => {
   e.preventDefault();
   e.stopPropagation();
   closeModal();
 });
-sayAgainBtn.addEventListener('click', () => currentAnimal && speak(currentAnimal.name));
-playSoundBtn.addEventListener('click', () => currentAnimal && playAnimalSound(currentAnimal));
 bigImageBtn.addEventListener('click', () => currentAnimal && playAnimalSound(currentAnimal));
 bigImageBtn.addEventListener('keydown', (e) => {
   if ((e.key === 'Enter' || e.key === ' ') && currentAnimal) {
